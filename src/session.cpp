@@ -76,7 +76,7 @@ SessionMgr::SessionMgr( EvPoll &p,  Logger &l,  ConfigTree &c,
              tcp_connect_timeout( 10 ), tcp_noencrypt( false ),
              tcp_ipv4( true ), tcp_ipv6( true ), want_msg_loss_errors( true ),
              no_fakeip( false ), no_mcast( false ),
-             session_started( false ), idle_busy( 16 )
+             session_started( false ), idle_busy( 8 )
 {
   this->sock_opts = OPT_NO_POLL;
   this->bp_flags  = BP_FORWARD | BP_NOTIFY;
@@ -164,11 +164,14 @@ SessionMgr::load_parameters( void ) noexcept
 {
   const char *s = "", *val = NULL;
   /*uint64_t hb_ival, rel_ival, time_val, bytes_val, host_id;*/
-  uint64_t tcp_write_timeout   = this->poll.wr_timeout_ns,
+  uint64_t tcp_keepalive       = this->poll.so_keepalive_ns,
+           tcp_write_timeout   = this->poll.wr_timeout_ns,
            tcp_write_highwater = this->poll.send_highwater,
            idle                = this->idle_busy,
            limit               = this->user_db.peer_dist.path_limit,
-           rate                = this->poll.blocked_read_rate;
+           rate                = this->poll.blocked_read_rate,
+           max_buf             = this->poll.max_write_buffer,
+           stall               = this->poll.stall_window_ns;
   uint32_t tcp_conn_timeout    = this->tcp_connect_timeout;
   bool ipv4_only     = false,
        ipv6_only     = false,
@@ -187,6 +190,7 @@ SessionMgr::load_parameters( void ) noexcept
        ! this->ld_secs( P_RELIABILITY, this->user_db.reliability ) ||
        ! this->ld_bool( P_TCP_NOENCRYPT, this->tcp_noencrypt ) ||
        ! this->ld_secs( P_TCP_CONNECT_TIMEOUT, tcp_conn_timeout ) ||
+       ! this->ld_nanos( P_TCP_KEEPALIVE, tcp_keepalive ) ||
        ! this->ld_nanos( P_TCP_WRITE_TIMEOUT, tcp_write_timeout ) ||
        ! this->ld_bytes( P_TCP_WRITE_HIGHWATER, tcp_write_highwater ) ||
        ! this->ld_bool( P_TCP_IPV4ONLY, ipv4_only ) ||
@@ -194,13 +198,15 @@ SessionMgr::load_parameters( void ) noexcept
        ! this->ld_bool( P_MSG_LOSS_ERRORS, want_msg_loss ) ||
        ! this->ld_bytes( P_PATH_LIMIT, limit ) ||
        ! this->ld_bytes( P_BLOCKED_READ_RATE, rate ) ||
+       ! this->ld_bytes( P_MAX_WRITE_BUFFER, max_buf ) ||
+       ! this->ld_nanos( P_BLOCKED_STALL_WINDOW, stall ) ||
        ! this->ld_bool( R_NO_FAKEIP, this->no_fakeip ) ||
        ! this->ld_bool( R_NO_MCAST, this->no_mcast ) )
     return false;
 
   this->idle_busy            = (uint32_t) idle;
+  this->poll.so_keepalive_ns = tcp_keepalive;
   this->poll.wr_timeout_ns   = tcp_write_timeout;
-  this->poll.so_keepalive_ns = tcp_write_timeout;
   this->tcp_connect_timeout  = tcp_conn_timeout;
   this->poll.send_highwater  = tcp_write_highwater;
   if ( limit > MAX_PATH_MASK )
@@ -208,6 +214,8 @@ SessionMgr::load_parameters( void ) noexcept
   if ( limit > 0 )
     this->user_db.peer_dist.path_limit = (uint32_t) limit;
   this->poll.blocked_read_rate = rate;
+  this->poll.max_write_buffer  = max_buf;
+  this->poll.stall_window_ns   = stall;
 
   ConfigTree::ParametersList &plist = this->tree.parameters;
   ConfigTree::ParametersList &ulist = this->user.parameters;
@@ -273,11 +281,14 @@ SessionMgr::reload_parameters( void ) noexcept
   uint32_t tmp_hb_interval          = this->user_db.hb_interval,
            tmp_reliability          = this->user_db.reliability;
   bool     tmp_tcp_noencrypt        = this->tcp_noencrypt;
-  uint64_t tmp_tcp_write_timeout    = this->poll.wr_timeout_ns,
+  uint64_t tmp_tcp_keepalive        = this->poll.so_keepalive_ns,
+           tmp_tcp_write_timeout    = this->poll.wr_timeout_ns,
            tmp_tcp_write_highwater  = this->poll.send_highwater,
+           tmp_blocked_read_rate    = this->poll.blocked_read_rate,
+           tmp_max_write_buffer     = this->poll.max_write_buffer,
+           tmp_stall_window         = this->poll.stall_window_ns,
            tmp_idle                 = this->idle_busy,
-           tmp_limit                = this->user_db.peer_dist.path_limit,
-           tmp_blocked_read_rate    = this->poll.blocked_read_rate;
+           tmp_limit                = this->user_db.peer_dist.path_limit;
   uint32_t tmp_tcp_conn_timeout     = this->tcp_connect_timeout;
   bool     tmp_want_msg_loss        = this->want_msg_loss_errors,
            tmp_no_fakeip            = this->no_fakeip,
@@ -295,11 +306,14 @@ SessionMgr::reload_parameters( void ) noexcept
        ! this->ld_secs( P_RELIABILITY, tmp_reliability ) ||
        ! this->ld_bool( P_TCP_NOENCRYPT, tmp_tcp_noencrypt ) ||
        ! this->ld_secs( P_TCP_CONNECT_TIMEOUT, tmp_tcp_conn_timeout ) ||
+       ! this->ld_nanos( P_TCP_KEEPALIVE, tmp_tcp_keepalive ) ||
        ! this->ld_nanos( P_TCP_WRITE_TIMEOUT, tmp_tcp_write_timeout ) ||
        ! this->ld_bytes( P_TCP_WRITE_HIGHWATER, tmp_tcp_write_highwater ) ||
        ! this->ld_bool( P_MSG_LOSS_ERRORS, tmp_want_msg_loss ) ||
        ! this->ld_bytes( P_PATH_LIMIT, tmp_limit ) ||
        ! this->ld_bytes( P_BLOCKED_READ_RATE, tmp_blocked_read_rate ) ||
+       ! this->ld_bytes( P_MAX_WRITE_BUFFER, tmp_max_write_buffer ) ||
+       ! this->ld_nanos( P_BLOCKED_STALL_WINDOW, tmp_stall_window ) ||
        ! this->ld_bool( R_NO_FAKEIP, tmp_no_fakeip ) ||
        ! this->ld_bool( R_NO_MCAST, tmp_no_mcast ) )
     return false;
@@ -345,9 +359,12 @@ SessionMgr::reload_parameters( void ) noexcept
     this->tcp_noencrypt = tmp_tcp_noencrypt;
     printf( "tcp_noencrypt %s\n", tmp_tcp_noencrypt ? "true" : "false" );
   }
+  if ( tmp_tcp_keepalive    != this->poll.so_keepalive_ns ) {
+    this->poll.so_keepalive_ns = tmp_tcp_keepalive;
+    printf( "tcp_keepalive %lu\n", (long unsigned) tmp_tcp_keepalive );
+  }
   if ( tmp_tcp_write_timeout    != this->poll.wr_timeout_ns ) {
     this->poll.wr_timeout_ns = tmp_tcp_write_timeout;
-    this->poll.so_keepalive_ns = tmp_tcp_write_timeout;
     printf( "tcp_write_timeout %lu\n", (long unsigned) tmp_tcp_write_timeout );
   }
   if ( tmp_tcp_write_highwater  != this->poll.send_highwater ) {
@@ -379,6 +396,14 @@ SessionMgr::reload_parameters( void ) noexcept
   if ( tmp_blocked_read_rate != this->poll.blocked_read_rate ) {
     this->poll.blocked_read_rate = tmp_blocked_read_rate;
     printf( "blocked_read_rate %lu bytes\n", (long unsigned) tmp_blocked_read_rate );
+  }
+  if ( tmp_max_write_buffer != this->poll.max_write_buffer ) {
+    this->poll.max_write_buffer = tmp_max_write_buffer;
+    printf( "max_write_buffer %lu bytes\n", (long unsigned) tmp_max_write_buffer );
+  }
+  if ( tmp_stall_window != this->poll.stall_window_ns ) {
+    this->poll.stall_window_ns = tmp_stall_window;
+    printf( "stall_window %lu ns\n", (long unsigned) tmp_stall_window );
   }
 
   return true;
@@ -639,6 +664,7 @@ SessionMgr::start( void ) noexcept
 
   printf( "%s: %s\n", P_TCP_NOENCRYPT, this->tcp_noencrypt ? "true" : "false" );
   printf( "%s: %u secs\n", P_TCP_CONNECT_TIMEOUT, this->tcp_connect_timeout );
+  printf( "%s: %" PRIu64 " secs\n", P_TCP_KEEPALIVE, ns_to_sec( this->poll.so_keepalive_ns ) );
   printf( "%s: %" PRIu64 " secs\n", P_TCP_WRITE_TIMEOUT, ns_to_sec( this->poll.wr_timeout_ns ) );
   printf( "%s: %u bytes\n", P_TCP_WRITE_HIGHWATER, this->poll.send_highwater );
 
@@ -649,6 +675,8 @@ SessionMgr::start( void ) noexcept
   printf( "%s: %s\n", P_MSG_LOSS_ERRORS, this->want_msg_loss_errors ? "true" : "false" );
   printf( "%s: %u\n", P_PATH_LIMIT, this->user_db.peer_dist.path_limit );
   printf( "%s: %" PRIu64 " bytes\n", P_BLOCKED_READ_RATE, this->poll.blocked_read_rate );
+  printf( "%s: %" PRIu64 " bytes\n", P_MAX_WRITE_BUFFER, this->poll.max_write_buffer );
+  printf( "%s: %" PRIu64 " secs\n", P_BLOCKED_STALL_WINDOW, ns_to_sec( this->poll.stall_window_ns ) );
   printf( "%s: %s\n", R_NO_MCAST, this->no_mcast ? "true" : "false" );
   printf( "%s: %s\n", R_NO_FAKEIP, this->no_fakeip ? "true" : "false" );
 
