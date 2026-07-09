@@ -231,9 +231,13 @@ The "parameters:" structure is optional and not necessary to define them.
 | tcp_ipv4only        | boolean  | false   | Use IPv4 addressing only
 | tcp_ipv6only        | boolean  | false   | Use IPv6 addressing only
 | tcp_noencrypt       | boolean  | false   | Default for TCP/mesh encryption
-| tcp_write_timeout   | time     | 10 secs | Timeout for TCP write
+| tcp_keepalive       | time     | 30 secs | TCP keepalive probe interval for idle links
+| tcp_write_timeout   | time     | 20 secs | Timeout for unacked TCP write progress
 | tcp_write_highwater | bytes    | 1 MB    | TCP write buffer size
-| idle_busy           | count    | 16      | Busy wait loop count
+| blocked_read_rate   | bytes    | 25 MB   | Read rate allowed while blocked on writes
+| max_write_buffer    | bytes    | 256 MB  | Hard cap on a single leg's write buffer
+| blocked_stall_window| time     | 3 secs  | Zero-write-progress time before a wedged leg is dropped
+| idle_busy           | count    | 8       | Busy wait loop count
 | working_directory   | dirname  | none    | Switch to directory when in daemon mode
 |=============================================
 
@@ -279,15 +283,43 @@ The "parameters:" structure is optional and not necessary to define them.
 - tcp_noencrypt -- When true, the default for TCP and mesh connections is to
   to not encrypt the traffic.
 
+- tcp_keepalive -- The `SO_KEEPALIVE` probe interval for a link.  This detects
+  a dead peer on an otherwise *idle* connection (no data queued).  It has no
+  effect on a connection that has unacknowledged data sitting in the send
+  buffer -- a wedged or frozen consumer -- which is instead governed by
+  `tcp_write_timeout`, `max_write_buffer` and `blocked_stall_window`.  This was
+  previously tied to `tcp_write_timeout`; it is now configured independently.
+
 - tcp_write_timeout -- Amount of time to wait for TCP write progress if the
   write buffer is full.  After this time, socket is disconnected and messages
   lost.  When a TCP write buffer has equal or more than `tcp_write_highwater`
   bytes then backpressure can be applied to the sockets that are forwarding
   data, causing them to add latency waiting for the writer to have space
-  available.
+  available.  This value also arms the kernel's unacked-data timeout
+  (`TCP_USER_TIMEOUT` on Linux, `TCP_MAXRT` on Windows), so a peer that stops
+  acknowledging transmitted data is reaped by the OS at roughly this time
+  rather than after the multi-minute default retransmit horizon.
 
 - tcp_write_highwater -- Amount of data to buffer for writing before applying
   back pressure to forwarding sockets.
+
+- blocked_read_rate -- When a leg is blocked on writes (its buffer is past
+  `tcp_write_highwater`), this is the rate at which it is still allowed to make
+  forward progress by releasing readers that are parked behind it.  It caps how
+  fast a back-pressured leg drains its parked readers so one slow consumer does
+  not starve the rest.
+
+- max_write_buffer -- A hard ceiling on the write buffer of a single leg,
+  independent of fanout or of whether any readers are parked behind it.  If a
+  leg's buffered send data grows past this size it is disconnected (with a
+  `MAX_BUFFER` error) rather than being allowed to consume unbounded memory.
+
+- blocked_stall_window -- Wedged-leg liveness limit.  If a leg is backed up past
+  `tcp_write_highwater` and makes zero successful send progress for this long
+  *while it is holding back parked readers*, it is treated as wedged and
+  disconnected (with a `STALL` error).  Only real sends count as progress, so
+  reads cannot mask a stalled write; a healthy consumer draining a large
+  message keeps making progress and never trips.
 
 - idle_busy -- Number of times to loop while no activity is present.  More
   looping while idle keeps the process on a CPU for lower latency at the

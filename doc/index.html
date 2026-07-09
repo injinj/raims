@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Asciidoctor 2.0.20">
+<meta name="generator" content="Asciidoctor 2.0.26">
 <meta name="author" content="v1.0, 2022">
 <title>Rai Multicast Services Guide</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
@@ -117,7 +117,6 @@ h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title str
 :not(pre):not([class^=L])>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background:#f7f7f8;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed}
 pre{color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;line-height:1.45;text-rendering:optimizeSpeed}
 pre code,pre pre{color:inherit;font-size:inherit;line-height:inherit}
-pre>code{display:block}
 pre.nowrap,pre.nowrap pre{white-space:pre;word-wrap:normal}
 em em{font-style:normal}
 strong strong{font-weight:400}
@@ -141,7 +140,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #content::before{content:none}
 #header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
 #header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
-#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header>h1:only-child{border-bottom:1px solid #dddddf;padding-bottom:8px}
 #header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:flex;flex-flow:row wrap}
 #header .details span:first-child{margin-left:-.125em}
 #header .details span.email a{color:rgba(0,0,0,.85)}
@@ -163,6 +162,7 @@ p a>code:hover{color:rgba(0,0,0,.9)}
 #toctitle{color:#7a2518;font-size:1.2em}
 @media screen and (min-width:768px){#toctitle{font-size:1.375em}
 body.toc2{padding-left:15em;padding-right:0}
+body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
 #toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
 #toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
 #toc.toc2>ul{font-size:.9em;margin-bottom:0}
@@ -219,6 +219,7 @@ table.tableblock.fit-content>caption.title{white-space:nowrap;width:0}
 .literalblock pre,.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class=highlight],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
 .literalblock.output pre{color:#f7f7f8;background:rgba(0,0,0,.9)}
 .listingblock>.content{position:relative}
+.listingblock pre>code{display:block}
 .listingblock code[data-lang]::before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:inherit;opacity:.5}
 .listingblock:hover code[data-lang]::before{display:block}
 .listingblock.terminal pre .command::before{content:attr(data-prompt);padding-right:.5em;color:inherit;opacity:.5}
@@ -328,7 +329,7 @@ a.image{text-decoration:none;display:inline-block}
 a.image object{pointer-events:none}
 sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
 sup.footnote a,sup.footnoteref a{text-decoration:none}
-sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+sup.footnote a:active,sup.footnoteref a:active,#footnotes .footnote a:first-of-type:active{text-decoration:underline}
 #footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
 #footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
 #footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
@@ -1344,10 +1345,16 @@ tcp_noencrypt: true</pre>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Default for TCP/mesh encryption</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">tcp_keepalive</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">30 secs</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TCP keepalive probe interval for idle links</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tcp_write_timeout</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">time</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">10 secs</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for TCP write</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">20 secs</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Timeout for unacked TCP write progress</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">tcp_write_highwater</p></td>
@@ -1356,9 +1363,27 @@ tcp_noencrypt: true</pre>
 <td class="tableblock halign-left valign-top"><p class="tableblock">TCP write buffer size</p></td>
 </tr>
 <tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">blocked_read_rate</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">bytes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">25 MB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read rate allowed while blocked on writes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">max_write_buffer</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">bytes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">256 MB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hard cap on a single leg&#8217;s write buffer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">blocked_stall_window</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3 secs</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Zero-write-progress time before a wedged leg is dropped</p></td>
+</tr>
+<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">idle_busy</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">count</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Busy wait loop count</p></td>
 </tr>
 <tr>
@@ -1427,16 +1452,48 @@ they will restart or stop the subscriptions using the maps.</p>
 to not encrypt the traffic.</p>
 </li>
 <li>
+<p>tcp_keepalive&#8201;&#8212;&#8201;The <code>SO_KEEPALIVE</code> probe interval for a link.  This detects
+a dead peer on an otherwise <strong>idle</strong> connection (no data queued).  It has no
+effect on a connection that has unacknowledged data sitting in the send
+buffer&#8201;&#8212;&#8201;a wedged or frozen consumer&#8201;&#8212;&#8201;which is instead governed by
+<code>tcp_write_timeout</code>, <code>max_write_buffer</code> and <code>blocked_stall_window</code>.  This was
+previously tied to <code>tcp_write_timeout</code>; it is now configured independently.</p>
+</li>
+<li>
 <p>tcp_write_timeout&#8201;&#8212;&#8201;Amount of time to wait for TCP write progress if the
 write buffer is full.  After this time, socket is disconnected and messages
 lost.  When a TCP write buffer has equal or more than <code>tcp_write_highwater</code>
 bytes then backpressure can be applied to the sockets that are forwarding
 data, causing them to add latency waiting for the writer to have space
-available.</p>
+available.  This value also arms the kernel&#8217;s unacked-data timeout
+(<code>TCP_USER_TIMEOUT</code> on Linux, <code>TCP_MAXRT</code> on Windows), so a peer that stops
+acknowledging transmitted data is reaped by the OS at roughly this time
+rather than after the multi-minute default retransmit horizon.</p>
 </li>
 <li>
 <p>tcp_write_highwater&#8201;&#8212;&#8201;Amount of data to buffer for writing before applying
 back pressure to forwarding sockets.</p>
+</li>
+<li>
+<p>blocked_read_rate&#8201;&#8212;&#8201;When a leg is blocked on writes (its buffer is past
+<code>tcp_write_highwater</code>), this is the rate at which it is still allowed to make
+forward progress by releasing readers that are parked behind it.  It caps how
+fast a back-pressured leg drains its parked readers so one slow consumer does
+not starve the rest.</p>
+</li>
+<li>
+<p>max_write_buffer&#8201;&#8212;&#8201;A hard ceiling on the write buffer of a single leg,
+independent of fanout or of whether any readers are parked behind it.  If a
+leg&#8217;s buffered send data grows past this size it is disconnected (with a
+<code>MAX_BUFFER</code> error) rather than being allowed to consume unbounded memory.</p>
+</li>
+<li>
+<p>blocked_stall_window&#8201;&#8212;&#8201;Wedged-leg liveness limit.  If a leg is backed up past
+<code>tcp_write_highwater</code> and makes zero successful send progress for this long
+<strong>while it is holding back parked readers</strong>, it is treated as wedged and
+disconnected (with a <code>STALL</code> error).  Only real sends count as progress, so
+reads cannot mask a stalled write; a healthy consumer draining a large
+message keeps making progress and never trips.</p>
 </li>
 <li>
 <p>idle_busy&#8201;&#8212;&#8201;Number of times to loop while no activity is present.  More
