@@ -25,38 +25,54 @@ key_expansion_128( __m128i key, __m128i gen )
   return key;
 }
 
+/* key_sched is accessed with unaligned load/store so the buffer carries no
+ * alignment contract (see aes.h): AES-NI operands need no alignment, and
+ * vmovdqu == vmovdqa on aligned data under -mavx.  This lets the enclosing
+ * socket object be allocated by plain malloc without a codegen trap. */
 void
 AES128::expand_key( const void *key ) noexcept
 {
   __m128i * sched = (__m128i *) this->key_sched,
-            genass;
+            genass, k;
   int i, j;
 
-  sched[ 0 ] = _mm_loadu_si128( (const __m128i *) key );
+  k = _mm_loadu_si128( (const __m128i *) key );
+  _mm_storeu_si128( &sched[ 0 ], k );
 
-  genass      = _mm_aeskeygenassist_si128( sched[ 0 ], 0x1 );
-  sched[ 1 ]  = key_expansion_128( sched[ 0 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 1 ], 0x2 );
-  sched[ 2 ]  = key_expansion_128( sched[ 1 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 2 ], 0x4 );
-  sched[ 3 ]  = key_expansion_128( sched[ 2 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 3 ], 0x8 );
-  sched[ 4 ]  = key_expansion_128( sched[ 3 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 4 ], 0x10 );
-  sched[ 5 ]  = key_expansion_128( sched[ 4 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 5 ], 0x20 );
-  sched[ 6 ]  = key_expansion_128( sched[ 5 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 6 ], 0x40 );
-  sched[ 7 ]  = key_expansion_128( sched[ 6 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 7 ], 0x80 );
-  sched[ 8 ]  = key_expansion_128( sched[ 7 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 8 ], 0x1b );
-  sched[ 9 ]  = key_expansion_128( sched[ 8 ], genass );
-  genass      = _mm_aeskeygenassist_si128( sched[ 9 ], 0x36 );
-  sched[ 10 ] = key_expansion_128( sched[ 9 ], genass );
+  genass = _mm_aeskeygenassist_si128( k, 0x1 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 1 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x2 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 2 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x4 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 3 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x8 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 4 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x10 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 5 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x20 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 6 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x40 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 7 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x80 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 8 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x1b );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 9 ], k );
+  genass = _mm_aeskeygenassist_si128( k, 0x36 );
+  k = key_expansion_128( k, genass );
+  _mm_storeu_si128( &sched[ 10 ], k );
   j = 10;
   for ( i = 11; i < 20; i++ )
-    sched[ i ] = _mm_aesimc_si128( sched[ --j ] );
+    _mm_storeu_si128( &sched[ i ],
+                      _mm_aesimc_si128( _mm_loadu_si128( &sched[ --j ] ) ) );
 }
 
 void
@@ -65,10 +81,10 @@ AES128::encrypt( const void *plain,  void *cipher ) noexcept
   __m128i * sched = (__m128i *) this->key_sched,
             mix   = _mm_loadu_si128( (__m128i *) plain );
 
-  mix = _mm_xor_si128( mix, sched[ 0 ] );
+  mix = _mm_xor_si128( mix, _mm_loadu_si128( &sched[ 0 ] ) );
   for ( size_t i = 1; i < 10; i++ )
-    mix = _mm_aesenc_si128( mix, sched[ i ] );
-  mix = _mm_aesenclast_si128( mix, sched[ 10 ] );
+    mix = _mm_aesenc_si128( mix, _mm_loadu_si128( &sched[ i ] ) );
+  mix = _mm_aesenclast_si128( mix, _mm_loadu_si128( &sched[ 10 ] ) );
 
   _mm_storeu_si128( (__m128i *) cipher, mix );
 }
@@ -79,10 +95,10 @@ AES128::decrypt( const void *cipher,  void *plain ) noexcept
   __m128i * sched = (__m128i *) this->key_sched,
             mix   = _mm_loadu_si128( (__m128i *) cipher );
 
-  mix = _mm_xor_si128( mix, sched[ 10 ] );
+  mix = _mm_xor_si128( mix, _mm_loadu_si128( &sched[ 10 ] ) );
   for ( size_t i = 11; i < 20; i++ )
-    mix = _mm_aesdec_si128( mix, sched[ i ] );
-  mix = _mm_aesdeclast_si128( mix, sched[ 0 ] );
+    mix = _mm_aesdec_si128( mix, _mm_loadu_si128( &sched[ i ] ) );
+  mix = _mm_aesdeclast_si128( mix, _mm_loadu_si128( &sched[ 0 ] ) );
 
   _mm_storeu_si128( (__m128i *) plain, mix );
 }
@@ -98,7 +114,7 @@ AES128::encrypt_ctr( uint64_t ctr[ 2 ], void *out, size_t out_blocks ) noexcept
 
   if ( ~i >= out_blocks - 1 && out_blocks >= 8 ) {
     do {
-      __m128i * sched = (__m128i *) this->key_sched,
+      __m128i * sched = (__m128i *) this->key_sched, sk,
                 mix0, mix1, mix2, mix3, mix4, mix5, mix6, mix7;
 
       mix0 = _mm_set_epi64x( bswap( i     ), j );
@@ -110,33 +126,36 @@ AES128::encrypt_ctr( uint64_t ctr[ 2 ], void *out, size_t out_blocks ) noexcept
       mix6 = _mm_set_epi64x( bswap( i + 6 ), j );
       mix7 = _mm_set_epi64x( bswap( i + 7 ), j );
 
-      mix0 = _mm_xor_si128( mix0, sched[ 0 ] );
-      mix1 = _mm_xor_si128( mix1, sched[ 0 ] );
-      mix2 = _mm_xor_si128( mix2, sched[ 0 ] );
-      mix3 = _mm_xor_si128( mix3, sched[ 0 ] );
-      mix4 = _mm_xor_si128( mix4, sched[ 0 ] );
-      mix5 = _mm_xor_si128( mix5, sched[ 0 ] );
-      mix6 = _mm_xor_si128( mix6, sched[ 0 ] );
-      mix7 = _mm_xor_si128( mix7, sched[ 0 ] );
+      sk = _mm_loadu_si128( &sched[ 0 ] );
+      mix0 = _mm_xor_si128( mix0, sk );
+      mix1 = _mm_xor_si128( mix1, sk );
+      mix2 = _mm_xor_si128( mix2, sk );
+      mix3 = _mm_xor_si128( mix3, sk );
+      mix4 = _mm_xor_si128( mix4, sk );
+      mix5 = _mm_xor_si128( mix5, sk );
+      mix6 = _mm_xor_si128( mix6, sk );
+      mix7 = _mm_xor_si128( mix7, sk );
 
       for ( size_t k = 1; k < 10; k++ ) {
-        mix0 = _mm_aesenc_si128( mix0, sched[ k ] );
-        mix1 = _mm_aesenc_si128( mix1, sched[ k ] );
-        mix2 = _mm_aesenc_si128( mix2, sched[ k ] );
-        mix3 = _mm_aesenc_si128( mix3, sched[ k ] );
-        mix4 = _mm_aesenc_si128( mix4, sched[ k ] );
-        mix5 = _mm_aesenc_si128( mix5, sched[ k ] );
-        mix6 = _mm_aesenc_si128( mix6, sched[ k ] );
-        mix7 = _mm_aesenc_si128( mix7, sched[ k ] );
+        sk = _mm_loadu_si128( &sched[ k ] );
+        mix0 = _mm_aesenc_si128( mix0, sk );
+        mix1 = _mm_aesenc_si128( mix1, sk );
+        mix2 = _mm_aesenc_si128( mix2, sk );
+        mix3 = _mm_aesenc_si128( mix3, sk );
+        mix4 = _mm_aesenc_si128( mix4, sk );
+        mix5 = _mm_aesenc_si128( mix5, sk );
+        mix6 = _mm_aesenc_si128( mix6, sk );
+        mix7 = _mm_aesenc_si128( mix7, sk );
       }
-      mix0 = _mm_aesenclast_si128( mix0, sched[ 10 ] );
-      mix1 = _mm_aesenclast_si128( mix1, sched[ 10 ] );
-      mix2 = _mm_aesenclast_si128( mix2, sched[ 10 ] );
-      mix3 = _mm_aesenclast_si128( mix3, sched[ 10 ] );
-      mix4 = _mm_aesenclast_si128( mix4, sched[ 10 ] );
-      mix5 = _mm_aesenclast_si128( mix5, sched[ 10 ] );
-      mix6 = _mm_aesenclast_si128( mix6, sched[ 10 ] );
-      mix7 = _mm_aesenclast_si128( mix7, sched[ 10 ] );
+      sk = _mm_loadu_si128( &sched[ 10 ] );
+      mix0 = _mm_aesenclast_si128( mix0, sk );
+      mix1 = _mm_aesenclast_si128( mix1, sk );
+      mix2 = _mm_aesenclast_si128( mix2, sk );
+      mix3 = _mm_aesenclast_si128( mix3, sk );
+      mix4 = _mm_aesenclast_si128( mix4, sk );
+      mix5 = _mm_aesenclast_si128( mix5, sk );
+      mix6 = _mm_aesenclast_si128( mix6, sk );
+      mix7 = _mm_aesenclast_si128( mix7, sk );
 
       _mm_storeu_si128( (__m128i *) ptr,          mix0 );
       _mm_storeu_si128( (__m128i *) &ptr[ 16 ],   mix1 );

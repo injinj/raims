@@ -7,10 +7,14 @@ namespace ms {
 struct AES128 {
   static const size_t BLOCK_SIZE = 16;
   ~AES128() { this->zero(); }
+#if 0
 #ifndef _MSC_VER
   uint8_t key_sched[ 128 * 20 / 8 ] __attribute__((__aligned__(64)));
 #else
   uint8_t __declspec(align(64)) key_sched[ 128 * 20 / 8 ];
+#endif
+#else
+  uint8_t key_sched[ 128 * 20 / 8 ];
 #endif
   void expand_key( const void *key  ) noexcept;
   void encrypt( const void *plain,  void *cipher ) noexcept;
