@@ -1,5 +1,5 @@
 openpgm_st_dep := 5.5
-sassrv_dep := 1.42
+sassrv_dep := 1.43
 natsmd_dep := 1.32
 raids_dep := 1.32
 raikv_dep := 1.41
