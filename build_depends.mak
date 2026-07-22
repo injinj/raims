@@ -1,10 +1,10 @@
 openpgm_st_dep := 5.5
 sassrv_dep := 1.42
-natsmd_dep := 1.31
-raids_dep := 1.31
-raikv_dep := 1.40
+natsmd_dep := 1.32
+raids_dep := 1.32
+raikv_dep := 1.41
 h3lib_dep := 4.1
 linecook_dep := 1.6
-raimd_dep := 1.30
+raimd_dep := 1.31
 rdbparser_dep := 1.2
 libdecnumber_dep := 3.62
