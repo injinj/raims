@@ -471,7 +471,7 @@ ms_gen_key_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(ms_gen_key_files)
 ms_gen_key_libs  :=
 ms_gen_key_lnk   := $(dlnk_lib)
 
-$(bind)/ms_gen_key$(exe): $(ms_gen_key_objs) $(ms_gen_key_libs) $(dlnk_dep)
+$(bind)/ms_gen_key$(exe): $(ms_gen_key_objs) $(ms_gen_key_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/ms_gen_key$(exe)
 all_depends += $(ms_gen_key_deps)
@@ -483,7 +483,7 @@ kdftest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(kdftest_files)))
 kdftest_libs  :=
 kdftest_lnk   := $(dlnk_lib)
 
-$(bind)/kdftest$(exe): $(kdftest_objs) $(kdftest_libs) $(dlnk_dep)
+$(bind)/kdftest$(exe): $(kdftest_objs) $(kdftest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/kdftest$(exe)
 all_depends += $(kdftest_deps)
@@ -495,7 +495,7 @@ mactest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(mactest_files)))
 mactest_libs  :=
 mactest_lnk   := $(dlnk_lib)
 
-$(bind)/mactest$(exe): $(mactest_objs) $(mactest_libs) $(dlnk_dep)
+$(bind)/mactest$(exe): $(mactest_objs) $(mactest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/mactest$(exe)
 all_depends += $(mactest_deps)
@@ -507,7 +507,7 @@ polytest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(polytest_files)))
 polytest_libs  :=
 polytest_lnk   := $(dlnk_lib)
 
-$(bind)/polytest$(exe): $(polytest_objs) $(polytest_libs) $(dlnk_dep)
+$(bind)/polytest$(exe): $(polytest_objs) $(polytest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/polytest$(exe)
 all_depends += $(polytest_deps)
@@ -530,7 +530,7 @@ curvetest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(curvetest_files)))
 curvetest_libs  :=
 curvetest_lnk   := $(dlnk_lib)
 
-$(bind)/curvetest$(exe): $(curvetest_objs) $(curvetest_libs) $(dlnk_dep)
+$(bind)/curvetest$(exe): $(curvetest_objs) $(curvetest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/curvetest$(exe)
 all_depends += $(curvetest_deps)
@@ -542,7 +542,7 @@ dsatest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(dsatest_files)))
 dsatest_libs  :=
 dsatest_lnk   := $(dlnk_lib)
 
-$(bind)/dsatest$(exe): $(dsatest_objs) $(dsatest_libs) $(dlnk_dep)
+$(bind)/dsatest$(exe): $(dsatest_objs) $(dsatest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/dsatest$(exe)
 all_depends += $(dsatest_deps)
@@ -554,7 +554,7 @@ sigtest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(sigtest_files)))
 sigtest_libs  :=
 sigtest_lnk   := $(dlnk_lib)
 
-$(bind)/sigtest$(exe): $(sigtest_objs) $(sigtest_libs) $(dlnk_dep)
+$(bind)/sigtest$(exe): $(sigtest_objs) $(sigtest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/sigtest$(exe)
 all_depends += $(sigtest_deps)
@@ -566,7 +566,7 @@ shatest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(shatest_files)))
 shatest_libs  :=
 shatest_lnk   := $(dlnk_lib)
 
-$(bind)/shatest$(exe): $(shatest_objs) $(shatest_libs) $(dlnk_dep)
+$(bind)/shatest$(exe): $(shatest_objs) $(shatest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/shatest$(exe)
 all_depends += $(shatest_deps)
@@ -578,7 +578,7 @@ aestest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(aestest_files)))
 aestest_libs  :=
 aestest_lnk   := $(dlnk_lib)
 
-$(bind)/aestest$(exe): $(aestest_objs) $(aestest_libs) $(dlnk_dep)
+$(bind)/aestest$(exe): $(aestest_objs) $(aestest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/aestest$(exe)
 all_depends += $(aestest_deps)
@@ -590,7 +590,7 @@ matchtest_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(matchtest_files)))
 matchtest_libs  :=
 matchtest_lnk   := $(dlnk_lib)
 
-$(bind)/matchtest$(exe): $(matchtest_objs) $(matchtest_libs) $(dlnk_dep)
+$(bind)/matchtest$(exe): $(matchtest_objs) $(matchtest_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/matchtest$(exe)
 all_depends += $(matchtest_deps)
@@ -601,7 +601,7 @@ ms_test_adj_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(ms_test_adj_file
 ms_test_adj_libs  :=
 ms_test_adj_lnk   := $(dlnk_lib)
 
-$(bind)/ms_test_adj$(exe): $(ms_test_adj_objs) $(ms_test_adj_libs) $(dlnk_dep)
+$(bind)/ms_test_adj$(exe): $(ms_test_adj_objs) $(ms_test_adj_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/ms_test_adj$(exe)
 all_depends += $(ms_test_adj_deps)
@@ -613,7 +613,7 @@ parse_config_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(parse_config_fi
 parse_config_libs  :=
 parse_config_lnk   := $(dlnk_lib)
 
-$(bind)/parse_config$(exe): $(parse_config_objs) $(parse_config_libs) $(dlnk_dep)
+$(bind)/parse_config$(exe): $(parse_config_objs) $(parse_config_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/parse_config$(exe)
 all_depends += $(parse_config_deps)
@@ -625,7 +625,7 @@ test_tcp_aes_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(test_tcp_aes_fi
 test_tcp_aes_libs  :=
 test_tcp_aes_lnk   := $(dlnk_lib)
 
-$(bind)/test_tcp_aes$(exe): $(test_tcp_aes_objs) $(test_tcp_aes_libs) $(dlnk_dep)
+$(bind)/test_tcp_aes$(exe): $(test_tcp_aes_objs) $(test_tcp_aes_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/test_tcp_aes$(exe)
 all_depends += $(test_tcp_aes_deps)
@@ -637,7 +637,7 @@ test_conn_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(test_conn_files)))
 test_conn_libs  :=
 test_conn_lnk   := $(dlnk_lib)
 
-$(bind)/test_conn$(exe): $(test_conn_objs) $(test_conn_libs) $(dlnk_dep)
+$(bind)/test_conn$(exe): $(test_conn_objs) $(test_conn_libs) $(dlnk_dep) $(lnk_dep)
 
 all_exes    += $(bind)/test_conn$(exe)
 all_depends += $(test_conn_deps)
@@ -649,7 +649,7 @@ parse_pcap_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(parse_pcap_files)
 parse_pcap_libs  :=
 parse_pcap_lnk   := $(dlnk_lib) -lpcap
 
-$(bind)/parse_pcap$(exe): $(parse_pcap_objs) $(parse_pcap_libs) $(dlnk_dep)
+$(bind)/parse_pcap$(exe): $(parse_pcap_objs) $(parse_pcap_libs) $(dlnk_dep) $(lnk_dep)
 
 #all_exes    += $(bind)/parse_pcap$(exe)
 #all_depends += $(parse_pcap_deps)
@@ -661,7 +661,7 @@ ms_server_deps  := $(addprefix $(dependd)/, $(addsuffix .d, $(ms_server_files)))
 ms_server_libs  :=
 ms_server_lnk   := $(dlnk_lib)
 
-$(bind)/ms_server$(exe): $(ms_server_objs) $(ms_server_libs) $(dlnk_dep)
+$(bind)/ms_server$(exe): $(ms_server_objs) $(ms_server_libs) $(dlnk_dep) $(lnk_dep)
 
 #ms_server_libs  :=
 #ms_server_lnk   := $(lnk_lib)
