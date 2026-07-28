@@ -1987,7 +1987,8 @@ SessionMgr::forward_uid_inbox( TransportRoute &src_rte,  EvPublish &fwd,
   uint16_t path_select = 0;
   UserRoute * u_ptr = NULL;
   if ( ! fwd.is_pub_type( PUB_TYPE_SERIAL ) ) {
-    path_select = this->user_db.peer_dist.hash_to_path( fwd.subj_hash );
+    path_select = this->user_db.peer_dist.hash_to_path(
+      fwd.path_hint ? fwd.path_hint : fwd.subj_hash );
     ForwardCache & forward = this->user_db.forward_path[ path_select ];
     this->user_db.peer_dist.update_path( forward, path_select );
 
@@ -2000,8 +2001,8 @@ SessionMgr::forward_uid_inbox( TransportRoute &src_rte,  EvPublish &fwd,
     path_select = 0;
     u_ptr = n->primary( this->user_db );
   }
-  d_sess( "any(%.*s) select(%u) %s\n", (int) fwd.subject_len, fwd.subject,
-          path_select, u_ptr->rte.name );
+  d_sess( "any(%.*s) select(%u) %s hint (%u)\n", (int) fwd.subject_len, fwd.subject,
+          path_select, u_ptr->rte.name, fwd.path_hint );
   ibx.s( _ANY );
 
   MsgEst e( ibx.len() );
