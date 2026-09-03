@@ -49,3 +49,4 @@ core.[0-9]?*
 /.*history*
 # config files
 /*.yaml
+!/deps.sh
