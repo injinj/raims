@@ -1,0 +1,7 @@
+# Redis protocol listener (redis-cli / RESP clients)
+tport: redis
+type: redis
+route:
+  listen: "127.0.0.1"
+  port: 6379
+  service: 7500

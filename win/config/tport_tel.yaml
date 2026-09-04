@@ -1,0 +1,6 @@
+# telnet console: telnet 127.0.0.1 2222
+tport: tel
+type: telnet
+route:
+  listen: "127.0.0.1"
+  port: 2222

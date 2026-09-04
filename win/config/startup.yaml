@@ -1,0 +1,7 @@
+# transports started when the server starts (systemd-style "enabled" list)
+startup:
+  listen:
+    - rv
+    - nats
+    - redis
+    - tel

@@ -1,0 +1,7 @@
+# NATS compatible listener
+tport: nats
+type: nats
+route:
+  listen: "*"
+  port: 4222
+  service: 4444

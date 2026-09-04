@@ -1,0 +1,6 @@
+# Rendezvous compatible listener: rvd clients (raisub2 -d host:7500) connect here
+tport: rv
+type: rv
+route:
+  listen: "*"
+  port: 7500
