@@ -10,6 +10,8 @@
 #   ./deps.sh          clone missing siblings
 #   ./deps.sh -b       clone missing siblings, then build all in dep order
 #   ./deps.sh -n       dry run (show what would happen)
+#   ./deps.sh -b port_extra=-mingw   extra args are passed to every make
+#                                    (mingw-w64 cross build for Windows)
 #
 # Versions in build_depends.mak are rpm BuildRequires minimums; master of
 # each dep normally satisfies them.  To pin exactly, check out matching
@@ -41,6 +43,7 @@ while getopts "bnh" o; do case "$o" in
   n) dry=1 ;;
   *) sed -n '2,20p' "$0"; exit 0 ;;
 esac; done
+shift $((OPTIND-1))   # remaining args go to make (e.g. port_extra=-mingw)
 
 [ -f "$DEPFILE" ] || { echo "missing $DEPFILE" >&2; exit 1; }
 
@@ -74,8 +77,8 @@ done
 if [ "$build" = 1 ]; then
   for r in $ordered; do
     echo "make:  $PARENT/$r"
-    [ "$dry" = 1 ] || make -C "$PARENT/$r" -j"$(nproc)"
+    [ "$dry" = 1 ] || make -C "$PARENT/$r" -j"$(nproc)" "$@"
   done
   echo "make:  $HERE"
-  [ "$dry" = 1 ] || make -C "$HERE" -j"$(nproc)"
+  [ "$dry" = 1 ] || make -C "$HERE" -j"$(nproc)" "$@"
 fi
