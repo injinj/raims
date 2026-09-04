@@ -67,7 +67,7 @@ dll         := dll
 exe         := .exe
 soflag      := -shared -Wl,--subsystem,windows
 fpicflags   := -fPIC -DMS_SHARED
-sock_lib    := -lcares -lssl -lcrypto -lws2_32 -lwinmm -liphlpapi
+sock_lib    := -lcares -lssl -lcrypto -lws2_32 -lpsapi -lwinmm -liphlpapi
 dynlink_lib := -lpcre2-8 -lpcre2-32 -lz
 NO_STL      := 1
 else
@@ -913,6 +913,38 @@ dist_bins: $(all_libs) $(bind)/ms_server $(bind)/ms_gen_key $(bind)/ms_test_adj
 	$(remove_rpath) $(bind)/ms_server$(exe)
 	$(remove_rpath) $(bind)/ms_gen_key$(exe)
 	$(remove_rpath) $(bind)/ms_test_adj$(exe)
+
+# --- windows distribution (make port_extra=-mingw dist_win) ------------------
+# ms_server.exe + ms_gen_key.exe (statically linked against the sibling libs),
+# the mingw runtime dlls (openssl, pcre2, c-ares, zlib, winpthread), raisvc.exe
+# (runs ms_server as a Windows service, see win/raisvc.c) and an evaluation
+# config (win/config: rv 7500, nats 4222, redis 6379, telnet 2222; the keys are
+# generated at install time with ms_gen_key).  Produces
+# <build_dir>/dist/raims-<ver>-win64.zip and, with makensis (mingw32-nsis),
+# raims-<ver>-win64-setup.exe which installs and starts the service.
+mingw_bin   := /usr/x86_64-w64-mingw32/sys-root/mingw/bin
+mingw_rtdll := libcares-2.dll libcrypto-3-x64.dll libssl-3-x64.dll libpcre2-8-0.dll \
+               libpcre2-32-0.dll libwinpthread-1.dll zlib1.dll
+dist_name   := $(name)-$(ver_build)-win64
+distd       := $(build_dir)/dist/$(dist_name)
+dist_strip  := x86_64-w64-mingw32-strip
+
+$(bind)/raisvc$(exe): win/raisvc.c
+	$(CC) -O2 -Wall -Wextra -o $@ $< -ladvapi32
+
+.PHONY: dist_win
+dist_win: all $(bind)/raisvc$(exe)
+	rm -rf $(distd) && mkdir -p $(distd)/bin $(distd)/config $(distd)/log
+	for f in ms_server ms_gen_key ms_test_adj raisvc ; do $(dist_strip) -o $(distd)/bin/$$f.exe $(bind)/$$f.exe ; done
+	for d in $(mingw_rtdll) ; do cp -f $(mingw_bin)/$$d $(distd)/bin/ ; done
+	cp -f win/config/*.yaml $(distd)/config/
+	cp -f win/README-windows.md $(distd)/README.md
+	( cd $(build_dir)/dist && rm -f $(dist_name).zip && zip -qr $(dist_name).zip $(dist_name) )
+	@if command -v makensis >/dev/null 2>&1 ; then \
+	  makensis -V2 -DNAME=$(name) -DVERSION=$(version) -DVER_BUILD=$(ver_build) -DSRC=$(abspath $(distd)) \
+	           -DOUT=$(abspath $(build_dir)/dist/$(dist_name)-setup.exe) win/raims.nsi ; \
+	else echo "makensis not found (dnf install mingw32-nsis), zip only" ; fi
+	@ls -la $(build_dir)/dist/*.zip $(build_dir)/dist/*.exe 2>/dev/null
 
 .PHONY: dist_rpm
 dist_rpm: srpm

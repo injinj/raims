@@ -2119,7 +2119,11 @@ Console::on_input( ConsoleOutput *p,  const char *buf,
       int secs = 60;
       if ( len > 0 )
         secs = (int) int_arg( arg, len );
+#if defined( _MSC_VER ) || defined( __MINGW32__ )
+      ::Sleep( (DWORD) secs * 1000 );
+#else
       ::sleep( secs );
+#endif
       break;
     }
     case CMD_QUIT: {

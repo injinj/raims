@@ -8,6 +8,10 @@
 #include <dlfcn.h>
 #else
 #include <raikv/win.h>
+#include <natsmd/ev_nats.h>
+#include <natsmd/ev_nats_client.h>
+#include <raids/ev_service.h>
+#include <sassrv/ev_rv_client.h>
 #endif
 #include <raims/transport.h>
 #include <raims/session.h>
@@ -893,6 +897,30 @@ TransportRoute::get_tport_service_host( ConfigTree::Transport &tport,
   }
 }
 
+/* <type>_create_listener / <type>_create_connection factory lookup.  On
+ * linux the built in protocols (rv, nats, redis) and any plugin loaded with
+ * the "library:" config resolve through dlsym( RTLD_DEFAULT ).  On windows
+ * the exe is linked statically and does not export its own symbols, so the
+ * built in ones come from this table; plugins still go through dlsym (a
+ * LoadLibrary/GetProcAddress shim in raikv). */
+static void *
+find_ipc_factory( const char *func_name ) noexcept
+{
+#if defined( _MSC_VER ) || defined( __MINGW32__ )
+  static const struct { const char *name; void *fn; } builtin[] = {
+    { "nats_create_listener",   (void *) nats_create_listener },
+    { "redis_create_listener",  (void *) redis_create_listener },
+    { "rv_create_connection",   (void *) rv_create_connection },
+    { "nats_create_connection", (void *) nats_create_connection },
+    { NULL, NULL }
+  };
+  for ( int i = 0; builtin[ i ].name != NULL; i++ )
+    if ( ::strcmp( builtin[ i ].name, func_name ) == 0 )
+      return builtin[ i ].fn;
+#endif
+  return dlsym( RTLD_DEFAULT, func_name );
+}
+
 bool
 TransportRoute::create_ipc_listener( ConfigTree::Transport &tport ) noexcept
 {
@@ -915,7 +943,7 @@ TransportRoute::create_ipc_listener( ConfigTree::Transport &tport ) noexcept
     char func_name[ 256 ];
     ::snprintf( func_name, sizeof( func_name ), "%s_create_listener",
                 tport.type.val );
-    void * f = dlsym( RTLD_DEFAULT, func_name );
+    void * f = find_ipc_factory( func_name );
     if ( f != NULL ) {
       l = ((EvTcpListen *(*)(EvPoll *, RoutePublish *, EvConnectionNotify *)) f)
           ( &this->poll, &this->sub_route, this );
@@ -956,7 +984,7 @@ TransportRoute::create_ipc_connection( ConfigTree::Transport &tport ) noexcept
     char func_name[ 256 ];
     ::snprintf( func_name, sizeof( func_name ), "%s_create_connection",
                 tport.type.val );
-    void * f = dlsym( RTLD_DEFAULT, func_name );
+    void * f = find_ipc_factory( func_name );
     if ( f != NULL ) {
       c = ((EvConnection *(*)(EvPoll *, RoutePublish *, EvConnectionNotify *)) f)
           ( &this->poll, &this->sub_route, this );
