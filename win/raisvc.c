@@ -124,13 +124,29 @@ start_child( void )
   return 0;
 }
 
+static BOOL WINAPI
+ignore_ctrl( DWORD ctrl )
+{
+  (void) ctrl;
+  return TRUE;     /* the break is for the child, not for us */
+}
+
 static void
 stop_child( void )
 {
   if ( child.hProcess == NULL )
     return;
-  /* polite first: the program sees it as SIGINT-like (ctrl-break) */
-  GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, child.dwProcessId );
+  /* polite first: the program sees it as SIGINT-like (ctrl-break).
+   * GenerateConsoleCtrlEvent only reaches processes on the caller's console
+   * and a service has none (the child got its own hidden one from
+   * CREATE_NO_WINDOW), so attach to the child's console for the duration --
+   * otherwise the event is silently dropped and every stop waits out the
+   * timeout below and ends in TerminateProcess */
+  if ( AttachConsole( child.dwProcessId ) ) {
+    SetConsoleCtrlHandler( ignore_ctrl, TRUE );
+    GenerateConsoleCtrlEvent( CTRL_BREAK_EVENT, child.dwProcessId );
+    FreeConsole();
+  }
   if ( WaitForSingleObject( child.hProcess, 20000 ) != WAIT_OBJECT_0 )
     TerminateProcess( child.hProcess, 1 );
   CloseHandle( child.hProcess );

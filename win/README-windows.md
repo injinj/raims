@@ -27,11 +27,15 @@ Evaluation transports (edit `config\tport_*.yaml`, restart the service):
 ## Install
 
 Run `raims-<ver>-win64-setup.exe`: it installs to `%ProgramFiles%\RaiMS`,
-generates the service key with `ms_gen_key -d config -s eval -y` (only when
-`config\svc_eval.yaml` does not exist yet, so keys survive upgrades), and
+generates the service key with `ms_gen_key -d config -s eval -y -f` (only when
+`config\config.yaml` does not exist yet, so keys survive upgrades), and
 registers + starts the Windows service **RaiMS** (automatic start, restart on
-failure after 5 s) through `raisvc.exe`.  Uninstall from *Apps & features*;
-the config directory with the keys is left behind.
+failure after 5 s) through `raisvc.exe`.  Uninstall from *Apps & features* or
+run `%ProgramFiles%\RaiMS\uninstall.exe`; it stops and removes the service,
+the firewall rule and the PATH entry.  The config directory with the keys is
+left behind on purpose -- `Remove-Item -Recurse -Force "$env:ProgramFiles\RaiMS"`
+from an elevated PowerShell (not cd'd into that directory) wipes it.  Files
+that were still in use are removed at the next reboot.
 
 From the zip instead (as Administrator):
 

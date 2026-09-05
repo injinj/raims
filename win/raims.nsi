@@ -33,12 +33,14 @@ Section "RaiMS server (ms_server, ms_gen_key, raisvc, dlls)" SecMain
     nsExec::ExecToLog '"$INSTDIR\bin\raisvc.exe" stop ${SVC}'
   SetOutPath "$INSTDIR"
   File /r /x config "${SRC}\*.*"
-  ; config: generate the keys only when there is no config yet -- ms_gen_key
-  ; wants an empty (or nonexistent) directory, so it runs before the transport
-  ; files are dropped in; those are refreshed on every install.
-  IfFileExists "$INSTDIR\config\svc_eval.yaml" cfg_done 0
+  ; config: generate the keys only when there is no config.yaml yet (that is
+  ; what ms_gen_key writes; the transport yaml files below are refreshed on
+  ; every install and must not count as "configured").  -f lets ms_gen_key
+  ; populate a directory that already holds leftover yaml from an earlier,
+  ; failed install -- without it ms_server dies with "Config not found".
+  IfFileExists "$INSTDIR\config\config.yaml" cfg_done 0
     CreateDirectory "$INSTDIR\config"
-    nsExec::ExecToLog '"$INSTDIR\bin\ms_gen_key.exe" -d "$INSTDIR\config" -s eval -y'
+    nsExec::ExecToLog '"$INSTDIR\bin\ms_gen_key.exe" -d "$INSTDIR\config" -s eval -y -f'
   cfg_done:
   SetOutPath "$INSTDIR\config"
   File "${SRC}\config\*.yaml"
@@ -83,20 +85,33 @@ LangString DESC_SecPath ${LANG_ENGLISH} "Append $INSTDIR\bin to the machine PATH
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Section "Uninstall"
-  nsExec::ExecToLog '"$INSTDIR\bin\raisvc.exe" uninstall ${SVC}'
+  ; never keep $INSTDIR as the working directory, it could not be removed
+  SetOutPath "$TEMP"
+  IfFileExists "$INSTDIR\bin\raisvc.exe" 0 +2
+    nsExec::ExecToLog '"$INSTDIR\bin\raisvc.exe" uninstall ${SVC}'
+  ; belt and braces: if raisvc is missing or the stop did not take, the exe
+  ; and dlls stay locked and RMDir silently leaves them behind
+  nsExec::ExecToLog 'sc.exe stop ${SVC}'
+  nsExec::ExecToLog 'sc.exe delete ${SVC}'
+  nsExec::ExecToLog 'taskkill.exe /F /T /IM ms_server.exe'
+  nsExec::ExecToLog 'taskkill.exe /F /IM raisvc.exe'
+  Sleep 1000
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="RaiMS ms_server"'
   ReadRegStr $0 HKLM "${REGENV}" "Path"
   ${UnStrRep} $1 $0 ";$INSTDIR\bin" ""
   StrCmp $0 $1 +3 0
     WriteRegExpandStr HKLM "${REGENV}" "Path" $1
     SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
-  RMDir /r "$INSTDIR\bin"
-  RMDir /r "$INSTDIR\log"
+  ; anything still in use is scheduled for removal at the next reboot
+  RMDir /r /REBOOTOK "$INSTDIR\bin"
+  RMDir /r /REBOOTOK "$INSTDIR\log"
   ; config (keys) is kept unless empty; delete it yourself to start over
-  Delete "$INSTDIR\README.md"
-  Delete "$INSTDIR\uninstall.exe"
+  Delete /REBOOTOK "$INSTDIR\README.md"
+  Delete /REBOOTOK "$INSTDIR\uninstall.exe"
   RMDir "$INSTDIR\config"
-  RMDir "$INSTDIR"
+  RMDir /REBOOTOK "$INSTDIR"
   DeleteRegKey HKLM "${REGUNINST}"
   DeleteRegKey HKLM "Software\RaiTechnology\RaiMS"
+  IfRebootFlag 0 +2
+    MessageBox MB_OK|MB_ICONINFORMATION "Some RaiMS files were still in use; they will be removed at the next reboot." /SD IDOK
 SectionEnd
