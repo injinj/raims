@@ -37,6 +37,18 @@ left behind on purpose -- `Remove-Item -Recurse -Force "$env:ProgramFiles\RaiMS"
 from an elevated PowerShell (not cd'd into that directory) wipes it.  Files
 that were still in use are removed at the next reboot.
 
+**The generated key is unique to this install.**  `ms_gen_key` creates a new
+service key (`config\svc_eval.yaml`, signed with the private key in `.pass` /
+`.salt`), and `ms_server` only networks with peers that hold the *same*
+service key -- two machines that each ran the installer have two different
+keys and will not mesh, even with matching transport config.  Local clients
+(rv, NATS, Redis) are not affected; the key only authenticates ms_server to
+ms_server.  To network several ms_servers, generate the key once, export a
+config per peer with `ms_gen_key -x <peer names> -s eval`, and copy each
+exported directory to that host's `config\` before starting the service.
+See the RaiMS guide, *Key Configuration*:
+<https://www.raitechnology.com/raims/#_key_configuration>.
+
 From the zip instead (as Administrator):
 
 ```
